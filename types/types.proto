@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+service TLSService {
+    rpc GetCertificate (GetCertificateRequest) returns (GetCertificateReply);
+}
+
+message GetCertificateRequest {
+    string domain = 1;
+    int64 exponent = 2;
+    bytes modulus = 3;
+}
+message GetCertificateReply {
+    bytes certificate = 1;
+}

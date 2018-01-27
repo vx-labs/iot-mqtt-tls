@@ -1,0 +1,14 @@
+package: github.com/vx-labs/iot-mqtt-tls
+import:
+- package: github.com/golang/protobuf
+  subpackages:
+  - proto
+- package: github.com/sirupsen/logrus
+  version: ~1.0.4
+- package: golang.org/x/net
+  subpackages:
+  - context
+- package: google.golang.org/grpc
+  version: ~1.9.2
+  subpackages:
+  - reflection
