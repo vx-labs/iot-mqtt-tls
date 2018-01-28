@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"crypto/rsa"
 	"crypto/rand"
+	"crypto/tls"
 )
 
 type Client struct {
@@ -31,10 +32,10 @@ func (c *Client) Close() error {
 	return c.conn.Close()
 }
 
-func (c *Client) GetCertificate(ctx context.Context, cn string) (*x509.Certificate, *rsa.PrivateKey, error) {
+func (c *Client) GetCertificate(ctx context.Context, cn string) ([]tls.Certificate, error) {
 	priv, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	resp, err := c.api.GetCertificate(ctx, &types.GetCertificateRequest{
 		Domain:   cn,
@@ -42,11 +43,19 @@ func (c *Client) GetCertificate(ctx context.Context, cn string) (*x509.Certifica
 		Modulus:  priv.PublicKey.N.Bytes(),
 	})
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	cert, err := x509.ParseCertificate(resp.Certificate)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	return cert, priv, err
+	return []tls.Certificate{
+		{
+			Leaf:       cert,
+			PrivateKey: priv,
+			Certificate: [][]byte{
+				cert.Raw,
+			},
+		},
+	}, nil
 }
