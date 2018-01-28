@@ -4,7 +4,6 @@ import (
 	"github.com/vx-labs/iot-mqtt-tls/api"
 	"github.com/sirupsen/logrus"
 	"context"
-	"fmt"
 	"encoding/pem"
 	"os"
 )
