@@ -1,13 +1,11 @@
 package main
 
 import (
-	"os"
 	"google.golang.org/grpc/reflection"
 	"net"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"github.com/vx-labs/iot-mqtt-tls/types"
-	"github.com/vx-labs/iot-mqtt-tls/state"
 	"golang.org/x/net/context"
 	"github.com/vx-labs/iot-mqtt-tls/signer"
 	"crypto/rsa"
@@ -17,11 +15,8 @@ import (
 type SignProvider interface {
 	Sign(pub *rsa.PublicKey, cn string) ([]byte, error)
 }
-type StateProvider interface {
-}
 
 type CertificateProvider struct {
-	state  StateProvider
 	signer SignProvider
 }
 
@@ -47,10 +42,6 @@ func main() {
 	s := grpc.NewServer()
 	store := &CertificateProvider{
 		signer: signer.NewLocalSigner(),
-	}
-	switch os.Getenv("BACKEND") {
-	default:
-		store.state = state.NewLocalProvider()
 	}
 	types.RegisterTLSServiceServer(s, store)
 	reflection.Register(s)
