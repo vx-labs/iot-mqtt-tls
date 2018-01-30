@@ -19,8 +19,8 @@ type SignProvider interface {
 }
 
 type CacheProvider interface {
-	Get(ctx context.Context, cn string) ([]byte, error)
-	Put(ctx context.Context, cn string, cert []byte) (error)
+	Get(ctx context.Context, cn string, modulus string) ([]byte, error)
+	Put(ctx context.Context, cn string, modulus string, cert []byte) (error)
 }
 
 type CertificateProvider struct {
@@ -29,7 +29,7 @@ type CertificateProvider struct {
 }
 
 func (c *CertificateProvider) GetCertificate(ctx context.Context, in *types.GetCertificateRequest) (*types.GetCertificateReply, error) {
-	cert, err := c.cache.Get(ctx, in.Domain)
+	cert, err := c.cache.Get(ctx, in.Domain, string(in.Modulus))
 	if err != nil {
 		pub := &rsa.PublicKey{
 			N: big.NewInt(0),
@@ -40,7 +40,7 @@ func (c *CertificateProvider) GetCertificate(ctx context.Context, in *types.GetC
 		if err != nil {
 			return nil, err
 		}
-		err = c.cache.Put(ctx, in.Domain, cert)
+		err = c.cache.Put(ctx, in.Domain, string(in.Modulus), cert)
 		if err != nil {
 			logrus.Errorf("unable to save cert to cache store: %v", err)
 			return nil, fmt.Errorf("unable to persit certificate to store")

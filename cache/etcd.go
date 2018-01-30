@@ -39,8 +39,8 @@ func NewEtcdProvider() *EtcdProvider {
 	return p
 }
 
-func (e *EtcdProvider) Get(ctx context.Context, cn string) ([]byte, error) {
-	key := fmt.Sprintf("%s/%s", prefix, cn)
+func (e *EtcdProvider) Get(ctx context.Context, cn string, modulus string) ([]byte, error) {
+	key := fmt.Sprintf("%s/%s/%s", prefix, cn, modulus)
 	cert, err := e.kv.Get(ctx, key, client.WithLimit(1))
 	if err != nil {
 		return nil, err
@@ -51,8 +51,8 @@ func (e *EtcdProvider) Get(ctx context.Context, cn string) ([]byte, error) {
 	return cert.Kvs[0].Value, nil
 }
 
-func (e *EtcdProvider) Put(ctx context.Context, cn string, cert []byte) (error) {
-	key := fmt.Sprintf("%s/%s", prefix, cn)
+func (e *EtcdProvider) Put(ctx context.Context, cn string, modulus string, cert []byte) (error) {
+	key := fmt.Sprintf("%s/%s/%s", prefix, cn, modulus)
 	_, err := e.kv.Put(ctx, key, string(cert))
 	if err != nil {
 		return err
