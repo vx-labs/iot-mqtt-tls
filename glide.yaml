@@ -12,3 +12,5 @@ import:
   version: ~1.9.2
   subpackages:
   - reflection
+- package: github.com/coreos/etcd
+  version: ~3.3.0-rc.4

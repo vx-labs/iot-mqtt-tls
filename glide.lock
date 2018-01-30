@@ -1,6 +1,21 @@
-hash: 1f829ec0195ed0811e785edb3c0fc55c84122ff3d9443d48c48e2464b85784bd
-updated: 2018-01-28T00:02:41.835677012+01:00
+hash: 02fe2e792063d445c46ecde455ba09f32a5d59a959bdce52132d0e80a4f061d4
+updated: 2018-01-30T21:59:21.941075381+01:00
 imports:
+- name: github.com/coreos/etcd
+  version: ea6360f5508aa1d32281d184319a41097b7dd79c
+  subpackages:
+  - auth/authpb
+  - clientv3
+  - etcdserver/api/v3rpc/rpctypes
+  - etcdserver/etcdserverpb
+  - mvcc/mvccpb
+  - pkg/types
+- name: github.com/gogo/protobuf
+  version: 342cbe0a04158f6dcb03ca0079991a51a4248c02
+  subpackages:
+  - gogoproto
+  - proto
+  - protoc-gen-gogo/descriptor
 - name: github.com/golang/protobuf
   version: 1e59b77b52bf8e4b449a57e6f79f21226d571845
   subpackages:
@@ -13,8 +28,10 @@ imports:
 - name: github.com/sirupsen/logrus
   version: d682213848ed68c0a260ca37d6dd5ace8423f5ba
 - name: golang.org/x/crypto
-  version: d585fd2cc9195196078f516b69daff6744ef5e84
+  version: 9419663f5a44be8b34ca85f08abc5fe1be11f8a3
   subpackages:
+  - bcrypt
+  - blowfish
   - ssh/terminal
 - name: golang.org/x/net
   version: 66aacef3dd8a676686c7ae3716979581e8b03c47
@@ -54,6 +71,7 @@ imports:
   - encoding
   - grpclb/grpc_lb_v1/messages
   - grpclog
+  - health/grpc_health_v1
   - internal
   - keepalive
   - metadata
