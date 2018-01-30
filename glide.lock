@@ -1,5 +1,5 @@
-hash: 02fe2e792063d445c46ecde455ba09f32a5d59a959bdce52132d0e80a4f061d4
-updated: 2018-01-30T21:59:21.941075381+01:00
+hash: 4fe62b17fa1ae70890bce2b9f073625f8343fa331e59d801ab337cf0f2ff2023
+updated: 2018-01-31T00:20:38.287014545+01:00
 imports:
 - name: github.com/coreos/etcd
   version: ea6360f5508aa1d32281d184319a41097b7dd79c
@@ -19,29 +19,43 @@ imports:
 - name: github.com/golang/protobuf
   version: 1e59b77b52bf8e4b449a57e6f79f21226d571845
   subpackages:
+  - jsonpb
   - proto
-  - protoc-gen-go/descriptor
   - ptypes
   - ptypes/any
   - ptypes/duration
   - ptypes/timestamp
+- name: github.com/miekg/dns
+  version: afd3e95dbb587b72606b27821aa8abfbfc756c30
 - name: github.com/sirupsen/logrus
   version: d682213848ed68c0a260ca37d6dd5ace8423f5ba
+- name: github.com/xenolf/lego
+  version: 67c86d860a797ce2483f50d9174d4ed24984bef2
+  subpackages:
+  - acme
+  - providers/dns/cloudflare
 - name: golang.org/x/crypto
   version: 9419663f5a44be8b34ca85f08abc5fe1be11f8a3
   subpackages:
-  - bcrypt
-  - blowfish
+  - ed25519
+  - ed25519/internal/edwards25519
+  - ocsp
   - ssh/terminal
 - name: golang.org/x/net
   version: 66aacef3dd8a676686c7ae3716979581e8b03c47
   subpackages:
+  - bpf
   - context
   - http2
   - http2/hpack
   - idna
+  - internal/iana
+  - internal/socket
   - internal/timeseries
+  - ipv4
+  - ipv6
   - lex/httplex
+  - publicsuffix
   - trace
 - name: golang.org/x/sys
   version: ebfc5b4631820b793c9010c87fd8fef0f39eb082
@@ -60,30 +74,29 @@ imports:
   subpackages:
   - googleapis/rpc/status
 - name: google.golang.org/grpc
-  version: 6b51017f791ae1cfbec89c52efdf444b13b550ef
+  version: 5b3c4e850e90a4cf6a20ebd46c8b32a0a3afcb9e
   subpackages:
   - balancer
-  - balancer/base
-  - balancer/roundrobin
   - codes
   - connectivity
   - credentials
-  - encoding
   - grpclb/grpc_lb_v1/messages
   - grpclog
+  - health
   - health/grpc_health_v1
   - internal
   - keepalive
   - metadata
   - naming
   - peer
-  - reflection
-  - reflection/grpc_reflection_v1alpha
   - resolver
-  - resolver/dns
-  - resolver/passthrough
   - stats
   - status
   - tap
   - transport
+- name: gopkg.in/square/go-jose.v1
+  version: aa2e30fdd1fe9dd3394119af66451ae790d50e0d
+  subpackages:
+  - cipher
+  - json
 testImports: []

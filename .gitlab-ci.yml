@@ -4,11 +4,6 @@ stages:
 services:
   - docker:dind
 
-before_script:
-  - eval $(docker run --rm -e APPROLE_ID=$APPROLE_ID -e APPROLE_SECRET=$APPROLE_SECRET quay.io/vxlabs/vault-envexport)
-  - docker login -u=$DOCKER_USERNAME -p=$DOCKER_PASSWORD $DOCKER_REGISTRY
-  - apk -U add make
-
 build:
   image: docker:latest
   stage: build
@@ -17,16 +12,3 @@ build:
       - /root/.glide/
   script:
     - make
-    - docker tag vxlabs/iot-mqtt-tls $DOCKER_REGISTRY/vxlabs/iot-mqtt-tls:$CI_COMMIT_SHA
-    - docker push $DOCKER_REGISTRY/vxlabs/iot-mqtt-tls:$CI_COMMIT_SHA
-
-deploy:
-  environment:
-    name: production
-    url: https://${IOT_ENVIRONMENT_NAME}
-  only:
-  - master
-  stage: deploy
-  image: docker:latest
-  script:
-    - make deploy

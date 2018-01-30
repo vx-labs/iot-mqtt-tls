@@ -8,6 +8,8 @@ import (
 	"time"
 	"golang.org/x/net/context"
 	"fmt"
+	"crypto/rsa"
+	"crypto/x509"
 )
 
 const prefix = "/mqtt/tls"
@@ -39,6 +41,34 @@ func NewEtcdProvider() *EtcdProvider {
 	return p
 }
 
+func (e *EtcdProvider) Unlock(ctx context.Context) {
+	return
+}
+func (e *EtcdProvider) Lock(ctx context.Context) error {
+	return nil
+}
+
+func (e *EtcdProvider) SaveKey(ctx context.Context, privkey *rsa.PrivateKey) (error) {
+	key := fmt.Sprintf("%s/_private/", prefix)
+	payload := x509.MarshalPKCS1PrivateKey(privkey)
+	_, err := e.kv.Put(ctx, key, string(payload))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func (e *EtcdProvider) GetKey(ctx context.Context) (*rsa.PrivateKey, error) {
+	key := fmt.Sprintf("%s/_private/", prefix)
+	response, err := e.kv.Get(ctx, key, client.WithLimit(1))
+	if err != nil {
+		return nil, err
+	}
+	if len(response.Kvs) != 1 {
+		return nil, fmt.Errorf("specified cn matched %d private key(s)", len(response.Kvs))
+	}
+	return x509.ParsePKCS1PrivateKey(response.Kvs[0].Value)
+
+}
 func (e *EtcdProvider) Get(ctx context.Context, cn string, modulus string) ([]byte, error) {
 	key := fmt.Sprintf("%s/%s/%s", prefix, cn, modulus)
 	cert, err := e.kv.Get(ctx, key, client.WithLimit(1))

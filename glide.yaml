@@ -1,16 +1,16 @@
 package: github.com/vx-labs/iot-mqtt-tls
 import:
-- package: github.com/golang/protobuf
+- package: github.com/coreos/etcd
+  version: ~3.3.0-rc.4
   subpackages:
-  - proto
+  - clientv3
 - package: github.com/sirupsen/logrus
   version: ~1.0.4
+- package: github.com/xenolf/lego
+  version: ~0.4.1
+  subpackages:
+  - acme
+  - providers/dns/cloudflare
 - package: golang.org/x/net
   subpackages:
   - context
-- package: google.golang.org/grpc
-  version: ~1.9.2
-  subpackages:
-  - reflection
-- package: github.com/coreos/etcd
-  version: ~3.3.0-rc.4

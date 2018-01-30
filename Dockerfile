@@ -8,11 +8,3 @@ RUN glide install
 COPY . ./
 RUN go test $(glide nv) && \
     go build -buildmode=exe -a -o /bin/server ./cmd/server
-
-FROM alpine
-EXPOSE 1883
-ENTRYPOINT ["/usr/bin/server"]
-RUN apk -U add ca-certificates && \
-    rm -rf /var/cache/apk/*
-COPY --from=builder /bin/server /usr/bin/server
-

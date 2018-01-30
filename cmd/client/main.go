@@ -4,18 +4,18 @@ import (
 	"github.com/vx-labs/iot-mqtt-tls/api"
 	"github.com/sirupsen/logrus"
 	"context"
-	"encoding/pem"
-	"os"
+	"fmt"
 )
 
 func main() {
-	c, err := api.New("localhost:7995")
+	c, err := api.New()
 	if err != nil {
 		logrus.Fatal(err)
 	}
-	cert, err := c.GetCertificate(context.Background(), "test")
+	ctx := context.Background()
+	certs, err := c.GetCertificate(ctx, "k8s.vx-labs.net")
 	if err != nil {
 		logrus.Fatal(err)
 	}
-	pem.Encode(os.Stdout, &pem.Block{Bytes: cert[0].Leaf.Raw, Type: "CERTIFICATE"})
+	fmt.Println(certs)
 }
