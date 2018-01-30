@@ -1,3 +1,12 @@
+apiVersion: "etcd.database.coreos.com/v1beta2"
+kind: "EtcdCluster"
+metadata:
+  name: "etcd-tls"
+  namespace: {{ KUBE_NAMESPACE }}
+spec:
+  size: 3
+  version: "3.2.13"
+---
 apiVersion: apps/v1beta2
 kind: Deployment
 metadata:
@@ -27,8 +36,8 @@ spec:
             value: "{{ APPROLE_ID }}"
           - name: "APPROLE_SECRET"
             value: "{{ APPROLE_SECRET }}"
-          - name: "EXPECT_PEER_NUMBER"
-            value: "1"
+          - name: "ETCD_ENDPOINTS"
+            value: "etcd-tls-client:2379"
         ports:
         - containerPort: 7995
       - env:
