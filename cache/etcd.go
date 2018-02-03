@@ -10,12 +10,18 @@ import (
 	"fmt"
 	"crypto/rsa"
 	"crypto/x509"
+	"github.com/coreos/etcd/clientv3/concurrency"
 )
 
 const prefix = "/mqtt/tls"
 
 type EtcdProvider struct {
 	kv *client.Client
+}
+
+type Locker interface {
+	Lock(ctx context.Context) error
+	Unlock(ctx context.Context) error
 }
 
 func NewEtcdProvider() *EtcdProvider {
@@ -41,11 +47,17 @@ func NewEtcdProvider() *EtcdProvider {
 	return p
 }
 
-func (e *EtcdProvider) Unlock(ctx context.Context) {
-	return
-}
-func (e *EtcdProvider) Lock(ctx context.Context) error {
-	return nil
+func (e *EtcdProvider) Locker(ctx context.Context) (Locker,  error) {
+	lockKey := fmt.Sprintf("%s/lock", prefix)
+	session, err := concurrency.NewSession(e.kv)
+	if err != nil {
+		return nil, err
+	}
+	m := concurrency.NewMutex(session, lockKey)
+	if err := m.Lock(ctx); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 func (e *EtcdProvider) SaveKey(ctx context.Context, privkey *rsa.PrivateKey) (error) {

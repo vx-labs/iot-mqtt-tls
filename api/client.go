@@ -42,11 +42,15 @@ func New() (*Client, error) {
 	}
 	ctx := context.Background()
 	store := cache.NewEtcdProvider()
-	err := store.Lock(ctx)
+	m, err := store.Locker(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer store.Unlock(ctx)
+	err = m.Lock(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer m.Unlock(ctx)
 	key, err := store.GetKey(ctx)
 	if err != nil {
 		key, err = rsa.GenerateKey(rand.Reader, 4096)
