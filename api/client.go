@@ -65,7 +65,12 @@ func New() (*Client, error) {
 	account := Account{
 		key: key,
 	}
-	client, err := acme.NewClient("https://acme-staging.api.letsencrypt.org/directory", &account, acme.RSA4096)
+	var client *acme.Client
+	if os.Getenv("LE_STAGING") == "true" {
+		client, err = acme.NewClient("https://acme-staging.api.letsencrypt.org/directory", &account, acme.RSA4096)
+	} else {
+		client, err = acme.NewClient("https://acme-v01.api.letsencrypt.org/directory", &account, acme.RSA4096)
+	}
 	if err != nil {
 		return nil, err
 	}
