@@ -57,14 +57,18 @@ func New(o ...Opt) (*Client, error) {
 	defer m.Unlock(ctx)
 	key, err := store.GetKey(ctx)
 	if err != nil {
+		logrus.Infof("generating private key")
 		key, err = rsa.GenerateKey(rand.Reader, 4096)
 		if err != nil {
 			return nil, err
 		}
+		logrus.Infof("saving private key")
 		err = store.SaveKey(ctx, key)
 		if err != nil {
 			return nil, err
 		}
+	} else {
+		logrus.Infof("fetched private key from cache")
 	}
 	account := Account{
 		email: opts.Email,
@@ -120,8 +124,10 @@ func (c *Client) GetCertificate(ctx context.Context, cn string) ([]tls.Certifica
 		if err != nil {
 			return nil, err
 		}
-		certList = append(certList, cert.Raw)
-		leaf = cert
+		certList = append(certList, block.Bytes)
+		if leaf == nil {
+			leaf = cert
+		}
 	}
 
 	return []tls.Certificate{

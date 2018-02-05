@@ -10,7 +10,11 @@ import (
 )
 
 func main() {
-	c, err := api.New(api.WithEmail(os.Getenv("LE_EMAIL")), api.WithStagingAPI(), api.WithEtcdEndpoints("http://localhost:2379"))
+	c, err := api.New(
+		api.WithEmail(os.Getenv("LE_EMAIL")),
+		api.WithStagingAPI(),
+		api.WithEtcdEndpoints("http://localhost:2379"),
+	)
 	if err != nil {
 		logrus.Fatal(err)
 	}
@@ -18,9 +22,6 @@ func main() {
 	certs, err := c.GetCertificate(ctx, "k8s.vx-labs.net")
 	if err != nil {
 		logrus.Fatal(err)
-	}
-	for _, cert := range certs {
-		logrus.Infoln(string(cert.Certificate[0]))
 	}
 	l, err := tls.Listen("tcp", fmt.Sprintf(":%d", 8000), &tls.Config{
 		Certificates: certs,
@@ -36,6 +37,7 @@ func main() {
 			continue
 		}
 		logrus.Infof("new conn from %s", c.RemoteAddr().String())
+		c.Write([]byte("hello !"))
 		c.Close()
 	}
 }
