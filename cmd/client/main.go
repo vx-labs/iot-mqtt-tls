@@ -6,10 +6,11 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"crypto/tls"
 )
 
 func main() {
-	c, err := api.New(api.WithEmail(os.Getenv("LE_EMAIL")), api.WithStagingAPI())
+	c, err := api.New(api.WithEmail(os.Getenv("LE_EMAIL")), api.WithStagingAPI(), api.WithEtcdEndpoints("http://localhost:2379"))
 	if err != nil {
 		logrus.Fatal(err)
 	}
@@ -18,5 +19,23 @@ func main() {
 	if err != nil {
 		logrus.Fatal(err)
 	}
-	fmt.Println(certs)
+	for _, cert := range certs {
+		logrus.Infoln(string(cert.Certificate[0]))
+	}
+	l, err := tls.Listen("tcp", fmt.Sprintf(":%d", 8000), &tls.Config{
+		Certificates: certs,
+	})
+	if err != nil {
+		logrus.Fatal(err)
+	}
+	logrus.Infof("listening on :8000")
+	for {
+		c, err := l.Accept()
+		if err != nil {
+			logrus.Warn(err)
+			continue
+		}
+		logrus.Infof("new conn from %s", c.RemoteAddr().String())
+		c.Close()
+	}
 }
