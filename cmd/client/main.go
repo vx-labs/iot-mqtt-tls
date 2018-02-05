@@ -5,10 +5,11 @@ import (
 	"github.com/sirupsen/logrus"
 	"context"
 	"fmt"
+	"os"
 )
 
 func main() {
-	c, err := api.New()
+	c, err := api.New(api.WithEmail(os.Getenv("LE_EMAIL")), api.WithStagingAPI())
 	if err != nil {
 		logrus.Fatal(err)
 	}

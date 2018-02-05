@@ -7,7 +7,6 @@ import (
 	"crypto/tls"
 	"github.com/xenolf/lego/acme"
 	"crypto"
-	"os"
 	"github.com/vx-labs/iot-mqtt-tls/cache"
 	"github.com/sirupsen/logrus"
 	"crypto/x509"
@@ -23,11 +22,12 @@ type Client struct {
 
 type Account struct {
 	key          *rsa.PrivateKey
+	email        string
 	Registration *acme.RegistrationResource
 }
 
 func (u Account) GetEmail() string {
-	return os.Getenv("LE_EMAIL")
+	return u.email
 }
 func (u Account) GetRegistration() *acme.RegistrationResource {
 	return u.Registration
@@ -36,12 +36,16 @@ func (u Account) GetPrivateKey() crypto.PrivateKey {
 	return u.key
 }
 
-func New() (*Client, error) {
-	if os.Getenv("LE_EMAIL") == "" {
+func New(o ...Opt) (*Client, error) {
+	opts := getOpts(o)
+	if opts.Email == "" {
 		return nil, fmt.Errorf("missing email address")
 	}
+	if opts.EtcdEndpoints == "" {
+		return nil, fmt.Errorf("missing etcd endpoints")
+	}
 	ctx := context.Background()
-	store := cache.NewEtcdProvider()
+	store := cache.NewEtcdProvider(opts.EtcdEndpoints)
 	m, err := store.Locker(ctx)
 	if err != nil {
 		return nil, err
@@ -63,10 +67,11 @@ func New() (*Client, error) {
 		}
 	}
 	account := Account{
-		key: key,
+		email: opts.Email,
+		key:   key,
 	}
 	var client *acme.Client
-	if os.Getenv("LE_STAGING") == "true" {
+	if opts.UseStaging {
 		client, err = acme.NewClient("https://acme-staging.api.letsencrypt.org/directory", &account, acme.RSA4096)
 	} else {
 		client, err = acme.NewClient("https://acme-v01.api.letsencrypt.org/directory", &account, acme.RSA4096)

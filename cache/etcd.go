@@ -3,7 +3,6 @@ package cache
 import (
 	client "github.com/coreos/etcd/clientv3"
 	"strings"
-	"os"
 	"github.com/sirupsen/logrus"
 	"time"
 	"golang.org/x/net/context"
@@ -24,10 +23,10 @@ type Locker interface {
 	Unlock(ctx context.Context) error
 }
 
-func NewEtcdProvider() *EtcdProvider {
+func NewEtcdProvider(endpoints string) *EtcdProvider {
 
 	cfg := client.Config{
-		Endpoints:   strings.Split(os.Getenv("ETCD_ENDPOINTS"), ","),
+		Endpoints:   strings.Split(endpoints, ","),
 		DialTimeout: 1 * time.Second,
 	}
 	c, err := client.New(cfg)
@@ -47,7 +46,7 @@ func NewEtcdProvider() *EtcdProvider {
 	return p
 }
 
-func (e *EtcdProvider) Locker(ctx context.Context) (Locker,  error) {
+func (e *EtcdProvider) Locker(ctx context.Context) (Locker, error) {
 	lockKey := fmt.Sprintf("%s/lock", prefix)
 	session, err := concurrency.NewSession(e.kv)
 	if err != nil {
