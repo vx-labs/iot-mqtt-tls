@@ -59,8 +59,8 @@ func (e *EtcdProvider) Locker(ctx context.Context) (Locker, error) {
 	return m, nil
 }
 
-func (e *EtcdProvider) SaveKey(ctx context.Context, privkey *rsa.PrivateKey) (error) {
-	key := fmt.Sprintf("%s/_private/", prefix)
+func (e *EtcdProvider) SaveKey(ctx context.Context, cn string, privkey *rsa.PrivateKey) (error) {
+	key := fmt.Sprintf("%s/%s/_private/", prefix, cn)
 	payload := x509.MarshalPKCS1PrivateKey(privkey)
 	_, err := e.kv.Put(ctx, key, string(payload))
 	if err != nil {
@@ -68,8 +68,8 @@ func (e *EtcdProvider) SaveKey(ctx context.Context, privkey *rsa.PrivateKey) (er
 	}
 	return nil
 }
-func (e *EtcdProvider) GetKey(ctx context.Context) (*rsa.PrivateKey, error) {
-	key := fmt.Sprintf("%s/_private/", prefix)
+func (e *EtcdProvider) GetKey(ctx context.Context, cn string) (*rsa.PrivateKey, error) {
+	key := fmt.Sprintf("%s/%s/_private/", prefix, cn)
 	response, err := e.kv.Get(ctx, key, client.WithLimit(1))
 	if err != nil {
 		return nil, err
