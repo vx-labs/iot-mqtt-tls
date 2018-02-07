@@ -79,11 +79,17 @@ func (e *EtcdProvider) GetCerts(ctx context.Context, cn string) ([]byte, []byte,
 	if err != nil {
 		return nil, nil, err
 	}
+	if len(response.Kvs) != 1 {
+		return nil, nil, fmt.Errorf("certificates not found")
+	}
 	certificate := response.Kvs[0].Value
 	key = fmt.Sprintf("%s/%s/_private", prefix, cn)
 	response, err = e.kv.Get(ctx, key, client.WithLimit(1))
 	if err != nil {
 		return nil, nil, err
+	}
+	if len(response.Kvs) != 1 {
+		return nil, nil, fmt.Errorf("private key not found")
 	}
 	privkey := response.Kvs[0].Value
 	return certificate, privkey, nil
