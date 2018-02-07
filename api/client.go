@@ -112,30 +112,38 @@ func (c *Client) GetCertificate(ctx context.Context, cn string) ([]tls.Certifica
 	}
 	l.Lock(ctx)
 	defer l.Unlock(ctx)
-	bundle := true
-	var key *rsa.PrivateKey
-	mustStoreKey := false
-	key, err = c.cache.GetKey(ctx, cn)
+	cert, key, err := c.cache.GetCerts(ctx, cn)
 	if err != nil {
-		mustStoreKey = true
-		key, err = rsa.GenerateKey(rand.Reader, 4096)
+		var newPrivKey *rsa.PrivateKey
+		newPrivKey, err = c.cache.GetKey(ctx, cn)
+		logrus.Infof("fetched key from cache")
 		if err != nil {
-			return nil, err
+			logrus.Infof("generating a new private key")
+			newPrivKey, err = rsa.GenerateKey(rand.Reader, 4096)
+			if err != nil {
+				return nil, err
+			}
 		}
+		logrus.Infof("request certificate from ACME")
+		certificates, failures := c.api.ObtainCertificate([]string{cn}, true, newPrivKey, false)
+		if len(failures) > 0 {
+			logrus.Fatal(failures)
+		}
+		cert = certificates.Certificate
+		key = certificates.PrivateKey
+		logrus.Infof("saving cert to cache")
+		err = c.cache.SaveCerts(ctx, cn, cert, key)
+		if err != nil {
+			logrus.Fatal(err)
+		}
+	} else {
+		logrus.Infof("fetched certs and key from cache")
 	}
-	certificates, failures := c.api.ObtainCertificate([]string{cn}, bundle, key, false)
-	if len(failures) > 0 {
-		logrus.Fatal(failures)
-	}
-	cert, err := tls.X509KeyPair(certificates.Certificate, certificates.PrivateKey)
+	tlsCert, err := tls.X509KeyPair(cert, key)
 	if err != nil {
 		logrus.Fatal(fmt.Errorf("could not parse ACME data: %v", err))
 	}
-
-	if mustStoreKey {
-		c.cache.SaveKey(ctx, cn, cert.PrivateKey.(*rsa.PrivateKey))
-	}
 	return []tls.Certificate{
-		cert,
+		tlsCert,
 	}, nil
 }
