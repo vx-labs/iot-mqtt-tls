@@ -1,11 +1,12 @@
-hash: 4fe62b17fa1ae70890bce2b9f073625f8343fa331e59d801ab337cf0f2ff2023
-updated: 2018-01-31T00:20:38.287014545+01:00
+hash: e96da4359aa7053cc9e8f6b113be4d9ced85cd967764b08227b9e3043dd47b1a
+updated: 2018-02-18T01:36:13.641524062+01:00
 imports:
 - name: github.com/coreos/etcd
-  version: ea6360f5508aa1d32281d184319a41097b7dd79c
+  version: 28f3f26c0e303392556035b694f75768d449d33d
   subpackages:
   - auth/authpb
   - clientv3
+  - clientv3/concurrency
   - etcdserver/api/v3rpc/rpctypes
   - etcdserver/etcdserverpb
   - mvcc/mvccpb

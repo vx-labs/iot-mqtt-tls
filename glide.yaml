@@ -1,7 +1,7 @@
 package: github.com/vx-labs/iot-mqtt-tls
 import:
 - package: github.com/coreos/etcd
-  version: ~3.3.0-rc.4
+  version: ~3.3.1
   subpackages:
   - clientv3
 - package: github.com/sirupsen/logrus
