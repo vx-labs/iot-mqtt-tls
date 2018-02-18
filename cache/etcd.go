@@ -97,7 +97,7 @@ func (e *EtcdProvider) GetCerts(ctx context.Context, cn string) ([]byte, []byte,
 }
 
 func (e *EtcdProvider) SaveKey(ctx context.Context, cn string, privkey *rsa.PrivateKey) (error) {
-	key := fmt.Sprintf("c", prefix, cn)
+	key := fmt.Sprintf("%s/%s/_private", prefix, cn)
 	payload := x509.MarshalPKCS1PrivateKey(privkey)
 	_, err := e.kv.Put(ctx, key, string(payload))
 	if err != nil {
