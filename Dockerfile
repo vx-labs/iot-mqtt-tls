@@ -6,5 +6,4 @@ RUN mkdir release
 COPY glide* ./
 RUN glide install
 COPY . ./
-RUN go test $(glide nv) && \
-    go build -buildmode=exe -a -o /bin/server ./cmd/server
+RUN go test $(glide nv)
