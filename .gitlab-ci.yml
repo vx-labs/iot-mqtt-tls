@@ -11,4 +11,5 @@ build:
     paths:
       - /root/.glide/
   script:
+    - apk -U add make
     - make
