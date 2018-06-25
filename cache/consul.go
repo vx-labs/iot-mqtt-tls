@@ -26,12 +26,7 @@ func (c *ConsulLocker) Unlock(ctx context.Context) error {
 	return nil
 }
 
-func NewConsulLocker() *ConsulLocker {
-	config := consul.DefaultConfig()
-	api, err := consul.NewClient(config)
-	if err != nil {
-		panic(err)
-	}
+func NewConsulLocker(api *consul.Client) *ConsulLocker {
 	return &ConsulLocker{
 		consul: api,
 	}

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"log"
 
 	consul "github.com/hashicorp/consul/api"
 	vault "github.com/hashicorp/vault/api"
@@ -17,20 +18,43 @@ import (
 const prefix = "mqtt/tls"
 
 type VaultProvider struct {
-	vault *vault.Client
+	vault  *vault.Client
+	consul *consul.Client
 }
 
 func NewVaultProvider() *VaultProvider {
+	consulConfig := consul.DefaultConfig()
+	consulAPI, err := consul.NewClient(consulConfig)
+	if err != nil {
+		panic(err)
+	}
+
 	config := vault.DefaultConfig()
+	if config.Address == "" {
+		config.Address = discoverVaultAddr(consulAPI)
+	}
+	log.Printf("INFO: connecting to vault at %s", config.Address)
 	api, err := vault.NewClient(config)
 	if err != nil {
 		panic(err)
 	}
 	return &VaultProvider{
-		vault: api,
+		vault:  api,
+		consul: consulAPI,
 	}
 }
 
+func discoverVaultAddr(client *consul.Client) string {
+	opt := &consul.QueryOptions{}
+	services, _, err := client.Health().Service("vault", "active", true, opt)
+	if err != nil {
+		panic(err)
+	}
+	for _, service := range services {
+		return fmt.Sprintf("http://%s:%d", service.Service.Address, service.Service.Port)
+	}
+	return ""
+}
 func (e *VaultProvider) savePrivateKey(ctx context.Context, path string, privkey *rsa.PrivateKey) error {
 	encoded := pem.EncodeToMemory(&pem.Block{
 		Type:  "RSA PRIVATE KEY",
@@ -101,7 +125,7 @@ func (e *VaultProvider) GetCert(ctx context.Context, cn string) ([]byte, error) 
 	return base64.StdEncoding.DecodeString(kv["certificate"].(string))
 }
 func (e *VaultProvider) Lock(ctx context.Context) (*consul.Lock, error) {
-	l := NewConsulLocker()
+	l := NewConsulLocker(e.consul)
 	return l.Lock(ctx)
 }
 func (e *VaultProvider) SaveRegistration(ctx context.Context, reg *acme.RegistrationResource) error {
