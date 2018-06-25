@@ -7,4 +7,8 @@ services:
   vault:
     image: vault
     network_mode: host
-    command: server -dev
+    cap_add:
+      - IPC_LOCK
+    environment:
+      VAULT_LOCAL_CONFIG: '{"listener": {"tcp": {"address": "0.0.0.0:8200", "tls_disable": true}}, "backend": {"consul": {}}, "default_lease_ttl": "168h", "max_lease_ttl": "720h"}'
+    command: server
