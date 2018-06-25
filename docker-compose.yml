@@ -1,12 +1,10 @@
 version: '2'
 services:
-  etcd:
-    image: quay.io/coreos/etcd:v3.2
-    ports:
-      - "2380:2380"
-      - "2379:2379"
-    command:
-      - etcd
-      - -name=etcd
-      - -listen-client-urls=http://0.0.0.0:2379
-      - -advertise-client-urls=http://0.0.0.0:2379
+  consul:
+    image: consul
+    network_mode: host
+    command: agent -server -ui -bind 0.0.0.0 -advertise 172.20.1.20 -client 0.0.0.0 -log-level err -bootstrap-expect=1
+  vault:
+    image: vault
+    network_mode: host
+    command: server -dev

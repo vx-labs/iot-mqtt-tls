@@ -1,13 +1,9 @@
 package: github.com/vx-labs/iot-mqtt-tls
 import:
-- package: github.com/coreos/etcd
-  version: ~3.3.1
-  subpackages:
-  - clientv3
 - package: github.com/sirupsen/logrus
   version: ~1.0.4
 - package: github.com/xenolf/lego
-  version: ~0.4.1
+  version: ~1.0.1
   subpackages:
   - acme
   - providers/dns/cloudflare

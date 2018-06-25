@@ -1,9 +1,8 @@
 package api
 
 type clientCreateOpts struct {
-	UseStaging    bool
-	Email         string
-	EtcdEndpoints string
+	UseStaging bool
+	Email      string
 }
 
 type Opt func(o *clientCreateOpts)
@@ -11,12 +10,6 @@ type Opt func(o *clientCreateOpts)
 func WithEmail(addr string) Opt {
 	return func(o *clientCreateOpts) {
 		o.Email = addr
-	}
-}
-
-func WithEtcdEndpoints(addr string) Opt {
-	return func(o *clientCreateOpts) {
-		o.EtcdEndpoints = addr
 	}
 }
 

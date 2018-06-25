@@ -1,21 +1,24 @@
 package api
 
 import (
-	"golang.org/x/net/context"
-	"crypto/rsa"
-	"crypto/rand"
-	"crypto/tls"
-	"github.com/xenolf/lego/acme"
 	"crypto"
-	"github.com/vx-labs/iot-mqtt-tls/cache"
-	"github.com/sirupsen/logrus"
-	"github.com/xenolf/lego/providers/dns/cloudflare"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
+
+	"github.com/sirupsen/logrus"
+	"github.com/vx-labs/iot-mqtt-tls/cache"
+	"github.com/xenolf/lego/acme"
+	"github.com/xenolf/lego/providers/dns/cloudflare"
+	"golang.org/x/net/context"
 )
 
 type Client struct {
 	api     *acme.Client
-	cache   *cache.EtcdProvider
+	cache   *cache.VaultProvider
 	account *Account
 }
 
@@ -40,61 +43,52 @@ func New(o ...Opt) (*Client, error) {
 	if opts.Email == "" {
 		return nil, fmt.Errorf("missing email address")
 	}
-	if opts.EtcdEndpoints == "" {
-		return nil, fmt.Errorf("missing etcd endpoints")
-	}
 	ctx := context.Background()
-	store := cache.NewEtcdProvider(opts.EtcdEndpoints)
-	m, err := store.Locker(ctx)
+	store := cache.NewVaultProvider()
+	lock, err := store.Lock(ctx)
 	if err != nil {
 		return nil, err
 	}
-	err = m.Lock(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer m.Unlock(ctx)
+	defer lock.Unlock()
 	key, err := store.GetKey(ctx, "account")
 	if err != nil {
-		logrus.Infof("generating private key")
+		logrus.Warnf("failed to fetch account key from cache, generating a new one: %v", err)
 		key, err = rsa.GenerateKey(rand.Reader, 4096)
 		if err != nil {
 			return nil, err
 		}
-		logrus.Infof("saving private key")
+		logrus.Infof("saving account private key")
 		err = store.SaveKey(ctx, "account", key)
 		if err != nil {
+			logrus.Errorf("failed to save private key: %v", err)
 			return nil, err
 		}
 	} else {
-		logrus.Infof("fetched private key from cache")
+		logrus.Infof("fetched account private key from cache")
 	}
 	account := Account{
 		email: opts.Email,
 		key:   key,
 	}
-	var client *acme.Client
-	if opts.UseStaging {
-		client, err = acme.NewClient("https://acme-staging.api.letsencrypt.org/directory", &account, acme.RSA4096)
+	reg, err := store.GetRegistration(ctx)
+	if err != nil {
+		logrus.Warnf("failed to fetch ACME account from cache")
 	} else {
-		client, err = acme.NewClient("https://acme-v01.api.letsencrypt.org/directory", &account, acme.RSA4096)
-	}
-	if err != nil {
-		return nil, err
-	}
-	reg, err := client.Register()
-	if err != nil {
-		return nil, err
-	}
-	account.Registration = reg
-	err = client.AgreeToTOS()
-	if err != nil {
-		return nil, err
+		account.Registration = reg
 	}
 	c := &Client{
-		api:     client,
 		account: &account,
 	}
+	var client *acme.Client
+	if opts.UseStaging {
+		client, err = acme.NewClient("https://acme-staging-v02.api.letsencrypt.org/directory", &account, acme.RSA4096)
+	} else {
+		client, err = acme.NewClient("https://acme-v02.api.letsencrypt.org/directory", &account, acme.RSA4096)
+	}
+	if err != nil {
+		return nil, err
+	}
+	c.api = client
 	cf, err := cloudflare.NewDNSProvider()
 	if err != nil {
 		return nil, err
@@ -102,46 +96,66 @@ func New(o ...Opt) (*Client, error) {
 	c.api.ExcludeChallenges([]acme.Challenge{acme.HTTP01})
 	err = c.api.SetChallengeProvider(acme.DNS01, cf)
 	c.cache = store
+
+	if account.Registration == nil {
+		reg, err = client.Register(true)
+		if err != nil {
+			return nil, err
+		}
+		err = store.SaveRegistration(ctx, reg)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return c, err
 }
 
 func (c *Client) GetCertificate(ctx context.Context, cn string) ([]tls.Certificate, error) {
-	l, err := c.cache.Locker(ctx)
+	l, err := c.cache.Lock(ctx)
 	if err != nil {
 		return nil, err
 	}
-	l.Lock(ctx)
-	defer l.Unlock(ctx)
-	cert, key, err := c.cache.GetCerts(ctx, cn)
+	defer l.Unlock()
+	key, err := c.cache.GetKey(ctx, cn)
 	if err != nil {
-		var newPrivKey *rsa.PrivateKey
-		newPrivKey, err = c.cache.GetKey(ctx, cn)
-		logrus.Infof("fetched key from cache")
+		logrus.Infof("generating a new private key")
+		key, err = rsa.GenerateKey(rand.Reader, 4096)
 		if err != nil {
-			logrus.Infof("generating a new private key")
-			newPrivKey, err = rsa.GenerateKey(rand.Reader, 4096)
-			if err != nil {
-				return nil, err
-			}
+			return nil, err
 		}
+		err = c.cache.SaveKey(ctx, cn, key)
+		if err != nil {
+			return nil, err
+		}
+		logrus.Infof("generated and saved a new private key")
+	} else {
+		logrus.Infof("fetched key from cache")
+	}
+	cert, err := c.cache.GetCert(ctx, cn)
+	if err != nil {
 		logrus.Infof("request certificate from ACME")
-		certificates, failures := c.api.ObtainCertificate([]string{cn}, true, newPrivKey, false)
-		if len(failures) > 0 {
-			logrus.Fatal(failures)
+		certificates, err := c.api.ObtainCertificate([]string{cn}, true, key, false)
+		if err != nil {
+			return nil, err
 		}
 		cert = certificates.Certificate
-		key = certificates.PrivateKey
 		logrus.Infof("saving cert to cache")
-		err = c.cache.SaveCerts(ctx, cn, cert, key)
+		err = c.cache.SaveCert(ctx, cn, cert)
 		if err != nil {
-			logrus.Fatal(err)
+			logrus.Errorf("failed to save letsencrypt certs: %v", err)
+			return nil, err
 		}
-	} else {
-		logrus.Infof("fetched certs and key from cache")
 	}
-	tlsCert, err := tls.X509KeyPair(cert, key)
+	encodedKey := pem.EncodeToMemory(
+		&pem.Block{
+			Type:  "RSA PRIVATE KEY",
+			Bytes: x509.MarshalPKCS1PrivateKey(key),
+		},
+	)
+	tlsCert, err := tls.X509KeyPair(cert, encodedKey)
 	if err != nil {
-		logrus.Fatal(fmt.Errorf("could not parse ACME data: %v", err))
+		logrus.Errorf("could not load certificates: %v", err)
+		return nil, err
 	}
 	return []tls.Certificate{
 		tlsCert,
