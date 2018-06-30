@@ -10,6 +10,7 @@ import (
 	"fmt"
 
 	"github.com/sirupsen/logrus"
+	config "github.com/vx-labs/iot-mqtt-config"
 	"github.com/vx-labs/iot-mqtt-tls/cache"
 	"github.com/xenolf/lego/acme"
 	"github.com/xenolf/lego/providers/dns/cloudflare"
@@ -39,12 +40,16 @@ func (u Account) GetPrivateKey() crypto.PrivateKey {
 }
 
 func New(o ...Opt) (*Client, error) {
+	consulAPI, vaultAPI, err := defaultClients()
+	if err != nil {
+		return nil, err
+	}
 	opts := getOpts(o)
 	if opts.Email == "" {
 		return nil, fmt.Errorf("missing email address")
 	}
 	ctx := context.Background()
-	store := cache.NewVaultProvider()
+	store := cache.NewVaultProvider(consulAPI, vaultAPI)
 	lock, err := store.Lock(ctx)
 	if err != nil {
 		return nil, err
@@ -89,7 +94,11 @@ func New(o ...Opt) (*Client, error) {
 		return nil, err
 	}
 	c.api = client
-	cf, err := cloudflare.NewDNSProvider()
+	cfCreds, err := config.Cloudflare(vaultAPI)
+	if err != nil {
+		return nil, err
+	}
+	cf, err := cloudflare.NewDNSProviderCredentials(cfCreds.EmailAddress, cfCreds.APIToken)
 	if err != nil {
 		return nil, err
 	}

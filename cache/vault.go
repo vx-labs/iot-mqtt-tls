@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
-	"log"
 
 	consul "github.com/hashicorp/consul/api"
 	vault "github.com/hashicorp/vault/api"
@@ -22,39 +21,13 @@ type VaultProvider struct {
 	consul *consul.Client
 }
 
-func NewVaultProvider() *VaultProvider {
-	consulConfig := consul.DefaultConfig()
-	consulAPI, err := consul.NewClient(consulConfig)
-	if err != nil {
-		panic(err)
-	}
-
-	config := vault.DefaultConfig()
-	if config.Address == "" {
-		config.Address = discoverVaultAddr(consulAPI)
-	}
-	log.Printf("INFO: connecting to vault at %s", config.Address)
-	api, err := vault.NewClient(config)
-	if err != nil {
-		panic(err)
-	}
+func NewVaultProvider(c *consul.Client, v *vault.Client) *VaultProvider {
 	return &VaultProvider{
-		vault:  api,
-		consul: consulAPI,
+		vault:  v,
+		consul: c,
 	}
 }
 
-func discoverVaultAddr(client *consul.Client) string {
-	opt := &consul.QueryOptions{}
-	services, _, err := client.Health().Service("vault", "active", true, opt)
-	if err != nil {
-		panic(err)
-	}
-	for _, service := range services {
-		return fmt.Sprintf("http://%s:%d", service.Service.Address, service.Service.Port)
-	}
-	return ""
-}
 func (e *VaultProvider) savePrivateKey(ctx context.Context, path string, privkey *rsa.PrivateKey) error {
 	encoded := pem.EncodeToMemory(&pem.Block{
 		Type:  "RSA PRIVATE KEY",
