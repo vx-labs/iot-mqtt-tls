@@ -53,9 +53,8 @@ func defaultClients() (*consul.Client, *vault.Client, error) {
 		return nil, nil, errors.New("unable to connect to consul")
 	}
 	config := vault.DefaultConfig()
-	if config.Address == "" {
-		config.Address = discoverVaultAddr(consulAPI)
-	}
+	config.Address = discoverVaultAddr(consulAPI)
+
 	vaultAPI, err := vault.NewClient(config)
 	if err != nil {
 		return nil, nil, err
