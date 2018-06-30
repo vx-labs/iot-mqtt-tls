@@ -11,7 +11,7 @@ type ConsulLocker struct {
 	consul *consul.Client
 }
 
-func (c *ConsulLocker) Lock(ctx context.Context) (*consul.Lock, error) {
+func (c *ConsulLocker) Lock(ctx context.Context, prefix string) (*consul.Lock, error) {
 	l, err := c.consul.LockKey(fmt.Sprintf("%s/lock", prefix))
 	if err != nil {
 		return nil, err

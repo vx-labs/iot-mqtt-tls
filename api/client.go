@@ -49,7 +49,11 @@ func New(o ...Opt) (*Client, error) {
 		return nil, fmt.Errorf("missing email address")
 	}
 	ctx := context.Background()
-	store := cache.NewVaultProvider(consulAPI, vaultAPI)
+	prefix := "tls"
+	if opts.UseStaging {
+		prefix = "tls-staging"
+	}
+	store := cache.NewVaultProvider(consulAPI, vaultAPI, prefix)
 	lock, err := store.Lock(ctx)
 	if err != nil {
 		return nil, err

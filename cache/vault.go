@@ -14,17 +14,19 @@ import (
 	"golang.org/x/net/context"
 )
 
-const prefix = "mqtt/tls"
+const globalPrefix = "mqtt"
 
 type VaultProvider struct {
 	vault  *vault.Client
 	consul *consul.Client
+	prefix string
 }
 
-func NewVaultProvider(c *consul.Client, v *vault.Client) *VaultProvider {
+func NewVaultProvider(c *consul.Client, v *vault.Client, p string) *VaultProvider {
 	return &VaultProvider{
 		vault:  v,
 		consul: c,
+		prefix: fmt.Sprintf("%s/%s", globalPrefix, p),
 	}
 }
 
@@ -63,16 +65,16 @@ func (e *VaultProvider) getPrivateKey(ctx context.Context, path string) (*rsa.Pr
 }
 
 func (e *VaultProvider) SaveKey(ctx context.Context, cn string, privkey *rsa.PrivateKey) error {
-	key := fmt.Sprintf("secret/data/%s/%s/private_key", prefix, cn)
+	key := fmt.Sprintf("secret/data/%s/%s/private_key", e.prefix, cn)
 	return e.savePrivateKey(ctx, key, privkey)
 }
 func (e *VaultProvider) GetKey(ctx context.Context, cn string) (*rsa.PrivateKey, error) {
-	path := fmt.Sprintf("secret/data/%s/%s/private_key", prefix, cn)
+	path := fmt.Sprintf("secret/data/%s/%s/private_key", e.prefix, cn)
 	return e.getPrivateKey(ctx, path)
 }
 
 func (e *VaultProvider) SaveCert(ctx context.Context, cn string, cert []byte) error {
-	key := fmt.Sprintf("secret/data/%s/%s/certificate", prefix, cn)
+	key := fmt.Sprintf("secret/data/%s/%s/certificate", e.prefix, cn)
 	_, err := e.vault.Logical().Write(key, map[string]interface{}{
 		"data": map[string]interface{}{
 			"certificate": cert,
@@ -82,7 +84,7 @@ func (e *VaultProvider) SaveCert(ctx context.Context, cn string, cert []byte) er
 }
 
 func (e *VaultProvider) GetCert(ctx context.Context, cn string) ([]byte, error) {
-	key := fmt.Sprintf("secret/data/%s/%s/certificate", prefix, cn)
+	key := fmt.Sprintf("secret/data/%s/%s/certificate", e.prefix, cn)
 	response, err := e.vault.Logical().Read(key)
 	if err != nil {
 		return nil, err
@@ -99,14 +101,14 @@ func (e *VaultProvider) GetCert(ctx context.Context, cn string) ([]byte, error) 
 }
 func (e *VaultProvider) Lock(ctx context.Context) (*consul.Lock, error) {
 	l := NewConsulLocker(e.consul)
-	return l.Lock(ctx)
+	return l.Lock(ctx, e.prefix)
 }
 func (e *VaultProvider) SaveRegistration(ctx context.Context, reg *acme.RegistrationResource) error {
 	payload, err := json.Marshal(reg)
 	if err != nil {
 		return err
 	}
-	key := fmt.Sprintf("secret/data/%s/account/registration", prefix)
+	key := fmt.Sprintf("secret/data/%s/account/registration", e.prefix)
 	_, err = e.vault.Logical().Write(key, map[string]interface{}{
 		"data": map[string]interface{}{
 			"registration": payload,
@@ -115,7 +117,7 @@ func (e *VaultProvider) SaveRegistration(ctx context.Context, reg *acme.Registra
 	return err
 }
 func (e *VaultProvider) GetRegistration(ctx context.Context) (*acme.RegistrationResource, error) {
-	key := fmt.Sprintf("secret/data/%s/account/registration", prefix)
+	key := fmt.Sprintf("secret/data/%s/account/registration", e.prefix)
 	response, err := e.vault.Logical().Read(key)
 	if err != nil {
 		return nil, err
