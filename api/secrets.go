@@ -1,12 +1,45 @@
 package api
 
 import (
+	"errors"
 	"fmt"
+	"log"
 	"os"
+	"time"
 
 	consul "github.com/hashicorp/consul/api"
 	vault "github.com/hashicorp/vault/api"
 )
+
+func wait(name string, retries int, test func() bool) error {
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+	for retries > 0 {
+		if test() {
+			return nil
+		}
+		log.Printf("%s is not ready, waiting for another 5s (%d retries left)", name, retries)
+		retries--
+		<-ticker.C
+	}
+	return errors.New("retries expired")
+}
+
+func vaultWaiter(api *vault.Client) func() bool {
+	return func() bool {
+		resp, err := api.Sys().Health()
+		if err != nil {
+			return false
+		}
+		return !resp.Sealed
+	}
+}
+func consulWaiter(api *consul.Client) func() bool {
+	return func() bool {
+		resp, err := api.Status().Leader()
+		return err == nil && resp != ""
+	}
+}
 
 func discoverVaultAddr(client *consul.Client) string {
 	opt := &consul.QueryOptions{}
@@ -25,7 +58,9 @@ func defaultClients() (*consul.Client, *vault.Client, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-
+	if wait("consul", 5, consulWaiter(consulAPI)) != nil {
+		return nil, nil, errors.New("unable to connect to consul")
+	}
 	config := vault.DefaultConfig()
 	if config.Address == "" {
 		config.Address = discoverVaultAddr(consulAPI)
@@ -35,5 +70,8 @@ func defaultClients() (*consul.Client, *vault.Client, error) {
 		return nil, nil, err
 	}
 	vaultAPI.SetToken(os.Getenv("VAULT_TOKEN"))
+	if wait("vault", 5, vaultWaiter(vaultAPI)) != nil {
+		return nil, nil, errors.New("unable to connect to vault")
+	}
 	return consulAPI, vaultAPI, nil
 }
