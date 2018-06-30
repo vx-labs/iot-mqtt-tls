@@ -25,15 +25,6 @@ func wait(name string, retries int, test func() bool) error {
 	return errors.New("retries expired")
 }
 
-func vaultWaiter(api *vault.Client) func() bool {
-	return func() bool {
-		resp, err := api.Sys().Health()
-		if err != nil {
-			return false
-		}
-		return !resp.Sealed
-	}
-}
 func consulWaiter(api *consul.Client) func() bool {
 	return func() bool {
 		resp, err := api.Status().Leader()
@@ -70,8 +61,5 @@ func defaultClients() (*consul.Client, *vault.Client, error) {
 		return nil, nil, err
 	}
 	vaultAPI.SetToken(os.Getenv("VAULT_TOKEN"))
-	if wait("vault", 5, vaultWaiter(vaultAPI)) != nil {
-		return nil, nil, errors.New("unable to connect to vault")
-	}
 	return consulAPI, vaultAPI, nil
 }
