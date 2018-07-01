@@ -6,12 +6,15 @@ import (
 	"os"
 
 	"github.com/sirupsen/logrus"
+	"github.com/vx-labs/iot-mqtt-config"
 	"github.com/vx-labs/iot-mqtt-tls/api"
 	"golang.org/x/net/context"
 )
 
 func main() {
+	consulAPI, vaultAPI, err := config.DefaultClients()
 	c, err := api.New(
+		consulAPI, vaultAPI,
 		api.WithEmail(os.Getenv("LE_EMAIL")),
 		api.WithStagingAPI(),
 	)

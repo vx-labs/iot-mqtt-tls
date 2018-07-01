@@ -1,5 +1,5 @@
-hash: 252825939eb2c846e51e41bea5ea3f88bbd2febe27a8324dc64475877461ab7c
-updated: 2018-07-01T00:38:08.075647679+02:00
+hash: 90d475d46eb0918f8e25e759eea4e83506baa7835541fc6e855669e19719d6f7
+updated: 2018-07-01T17:08:02.702090189+02:00
 imports:
 - name: github.com/armon/go-metrics
   version: 58588f401c2cc130a7308a52ca3bc6c0a76db04b
@@ -62,7 +62,7 @@ imports:
 - name: github.com/sirupsen/logrus
   version: c155da19408a8799da419ed3eeb0cb5db0ad5dbc
 - name: github.com/vx-labs/iot-mqtt-config
-  version: 183c8fb3d7fd09a7deddd934696949a27d765da6
+  version: 46a63a891f69071d453eb00018642bcb0c4df552
 - name: github.com/xenolf/lego
   version: 27e0f97c9df37cad8c4ba0ef1d133fa57afb7469
   subpackages:

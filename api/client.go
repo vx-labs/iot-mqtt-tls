@@ -9,6 +9,8 @@ import (
 	"encoding/pem"
 	"fmt"
 
+	consul "github.com/hashicorp/consul/api"
+	vault "github.com/hashicorp/vault/api"
 	"github.com/sirupsen/logrus"
 	config "github.com/vx-labs/iot-mqtt-config"
 	"github.com/vx-labs/iot-mqtt-tls/cache"
@@ -39,11 +41,7 @@ func (u Account) GetPrivateKey() crypto.PrivateKey {
 	return u.key
 }
 
-func New(o ...Opt) (*Client, error) {
-	consulAPI, vaultAPI, err := defaultClients()
-	if err != nil {
-		return nil, err
-	}
+func New(consulAPI *consul.Client, vaultAPI *vault.Client, o ...Opt) (*Client, error) {
 	opts := getOpts(o)
 	if opts.Email == "" {
 		return nil, fmt.Errorf("missing email address")
