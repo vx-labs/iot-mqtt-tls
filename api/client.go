@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"os"
 
 	consul "github.com/hashicorp/consul/api"
 	vault "github.com/hashicorp/vault/api"
@@ -96,6 +97,14 @@ func New(consulAPI *consul.Client, vaultAPI *vault.Client, o ...Opt) (*Client, e
 		return nil, err
 	}
 	c.api = client
+	httpConfig, _, err := config.HTTP(consulAPI)
+	if err != nil {
+		return nil, err
+	}
+	if httpConfig.Proxy != "" {
+		os.Setenv("http_proxy", httpConfig.Proxy)
+		os.Setenv("https_proxy", httpConfig.Proxy)
+	}
 	cfCreds, err := config.Cloudflare(vaultAPI)
 	if err != nil {
 		return nil, err

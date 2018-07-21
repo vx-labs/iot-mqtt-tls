@@ -11,4 +11,4 @@ import:
   subpackages:
   - context
 - package: github.com/vx-labs/iot-mqtt-config
-  version: ~0.0.5
+  version: ~0.0.6
