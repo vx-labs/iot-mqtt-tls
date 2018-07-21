@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"log"
 	"os"
 
 	consul "github.com/hashicorp/consul/api"
@@ -102,6 +103,7 @@ func New(consulAPI *consul.Client, vaultAPI *vault.Client, o ...Opt) (*Client, e
 		return nil, err
 	}
 	if httpConfig.Proxy != "" {
+		log.Printf("INFO: using proxy %s", httpConfig.Proxy)
 		os.Setenv("http_proxy", httpConfig.Proxy)
 		os.Setenv("https_proxy", httpConfig.Proxy)
 	}
