@@ -88,6 +88,15 @@ func New(consulAPI *consul.Client, vaultAPI *vault.Client, o ...Opt) (*Client, e
 	c := &Client{
 		account: &account,
 	}
+	httpConfig, _, err := config.HTTP(consulAPI)
+	if err != nil {
+		return nil, err
+	}
+	if httpConfig.Proxy != "" {
+		log.Printf("INFO: using proxy %s", httpConfig.Proxy)
+		os.Setenv("http_proxy", httpConfig.Proxy)
+		os.Setenv("https_proxy", httpConfig.Proxy)
+	}
 	var client *acme.Client
 	if opts.UseStaging {
 		client, err = acme.NewClient("https://acme-staging-v02.api.letsencrypt.org/directory", &account, acme.RSA4096)
@@ -98,15 +107,7 @@ func New(consulAPI *consul.Client, vaultAPI *vault.Client, o ...Opt) (*Client, e
 		return nil, err
 	}
 	c.api = client
-	httpConfig, _, err := config.HTTP(consulAPI)
-	if err != nil {
-		return nil, err
-	}
-	if httpConfig.Proxy != "" {
-		log.Printf("INFO: using proxy %s", httpConfig.Proxy)
-		os.Setenv("http_proxy", httpConfig.Proxy)
-		os.Setenv("https_proxy", httpConfig.Proxy)
-	}
+
 	cfCreds, err := config.Cloudflare(vaultAPI)
 	if err != nil {
 		return nil, err
