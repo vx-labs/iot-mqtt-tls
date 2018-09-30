@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -50,6 +51,7 @@ func newHttpClient(httpConfig config.HTTPSchema) *http.Client {
 	if httpConfig.Proxy != "" {
 		proxyURL, err := url.Parse(httpConfig.Proxy)
 		if err == nil {
+			log.Printf("http-client: using proxy at %s", proxyURL.String())
 			client.Transport = &http.Transport{
 				Proxy: http.ProxyURL(proxyURL),
 				DialContext: (&net.Dialer{
