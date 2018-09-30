@@ -53,12 +53,12 @@ func newHttpClient(httpConfig config.HTTPSchema) *http.Client {
 			client.Transport = &http.Transport{
 				Proxy: http.ProxyURL(proxyURL),
 				DialContext: (&net.Dialer{
-					Timeout:   10 * time.Second,
+					Timeout:   30 * time.Second,
 					KeepAlive: 30 * time.Second,
 				}).DialContext,
 				TLSHandshakeTimeout:   15 * time.Second,
 				ResponseHeaderTimeout: 15 * time.Second,
-				ExpectContinueTimeout: 1 * time.Second,
+				ExpectContinueTimeout: 3 * time.Second,
 			}
 		}
 	}
