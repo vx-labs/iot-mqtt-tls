@@ -166,6 +166,10 @@ func (c *Client) GetCertificate(ctx context.Context, cn string) ([]tls.Certifica
 		return nil, err
 	}
 	defer l.Unlock()
+	// disable ACME DNS check for now
+	acme.PreCheckDNS = func(fqdn, value string) (bool, error) {
+		return true, nil
+	}
 	key, err := c.cache.GetKey(ctx, cn)
 	if err != nil {
 		logrus.Infof("generating a new private key")
