@@ -8,7 +8,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -44,6 +43,26 @@ func (u Account) GetRegistration() *acme.RegistrationResource {
 }
 func (u Account) GetPrivateKey() crypto.PrivateKey {
 	return u.key
+}
+
+func newHttpClient(httpConfig config.HTTPSchema) *http.Client {
+	client := http.Client{}
+	if httpConfig.Proxy != "" {
+		proxyURL, err := url.Parse(httpConfig.Proxy)
+		if err == nil {
+			client.Transport = &http.Transport{
+				Proxy: http.ProxyURL(proxyURL),
+				DialContext: (&net.Dialer{
+					Timeout:   10 * time.Second,
+					KeepAlive: 30 * time.Second,
+				}).DialContext,
+				TLSHandshakeTimeout:   15 * time.Second,
+				ResponseHeaderTimeout: 15 * time.Second,
+				ExpectContinueTimeout: 1 * time.Second,
+			}
+		}
+	}
+	return &client
 }
 
 func New(consulAPI *consul.Client, vaultAPI *vault.Client, o ...Opt) (*Client, error) {
@@ -95,24 +114,8 @@ func New(consulAPI *consul.Client, vaultAPI *vault.Client, o ...Opt) (*Client, e
 	if err != nil {
 		return nil, err
 	}
-	if httpConfig.Proxy != "" {
-		log.Printf("INFO: using proxy %s", httpConfig.Proxy)
-		proxyURL, err := url.Parse(httpConfig.Proxy)
-		if err == nil {
-			acme.HTTPClient.Transport = &http.Transport{
-				Proxy: http.ProxyURL(proxyURL),
-				DialContext: (&net.Dialer{
-					Timeout:   30 * time.Second,
-					KeepAlive: 30 * time.Second,
-				}).DialContext,
-				TLSHandshakeTimeout:   15 * time.Second,
-				ResponseHeaderTimeout: 15 * time.Second,
-				ExpectContinueTimeout: 1 * time.Second,
-			}
-		} else {
-			log.Printf("WARN: unable to parse proxy URL, defaulting to not-using a proxy: %v", err)
-		}
-	}
+	httpClient := newHttpClient(httpConfig)
+	acme.HTTPClient = *httpClient
 	var client *acme.Client
 	if opts.UseStaging {
 		client, err = acme.NewClient("https://acme-staging-v02.api.letsencrypt.org/directory", &account, acme.RSA4096)
@@ -129,7 +132,11 @@ func New(consulAPI *consul.Client, vaultAPI *vault.Client, o ...Opt) (*Client, e
 	if err != nil {
 		return nil, err
 	}
-	cf, err := cloudflare.NewDNSProviderCredentials(cfCreds.EmailAddress, cfCreds.APIToken)
+	cfConfig := cloudflare.NewDefaultConfig()
+	cfConfig.HTTPClient = newHttpClient(httpConfig)
+	cfConfig.AuthEmail = cfCreds.EmailAddress
+	cfConfig.AuthKey = cfCreds.APIToken
+	cf, err := cloudflare.NewDNSProviderConfig(cfConfig)
 	if err != nil {
 		return nil, err
 	}
