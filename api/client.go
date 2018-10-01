@@ -168,6 +168,7 @@ func (c *Client) GetCertificate(ctx context.Context, cn string) ([]tls.Certifica
 	defer l.Unlock()
 	// disable ACME DNS check for now
 	acme.PreCheckDNS = func(fqdn, value string) (bool, error) {
+		time.Sleep(5 * time.Second)
 		return true, nil
 	}
 	key, err := c.cache.GetKey(ctx, cn)
