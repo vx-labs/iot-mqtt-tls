@@ -135,7 +135,7 @@ func New(consulAPI *consul.Client, vaultAPI *vault.Client, o ...Opt) (*Client, e
 		return nil, err
 	}
 	cfConfig := cloudflare.NewDefaultConfig()
-	cfConfig.TTL = 0
+	cfConfig.TTL = 125
 	cfConfig.HTTPClient = newHttpClient(httpConfig)
 	cfConfig.AuthEmail = cfCreds.EmailAddress
 	cfConfig.AuthKey = cfCreds.APIToken
