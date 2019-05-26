@@ -36,7 +36,5 @@
 
 [[constraint]]
   name = "github.com/xenolf/lego"
-  branch = "master"
-
 [[constraint]]
   name = "golang.org/x/net"

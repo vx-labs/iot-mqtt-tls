@@ -14,18 +14,22 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/go-acme/lego/challenge"
+
+	"github.com/go-acme/lego/certificate"
+	"github.com/go-acme/lego/lego"
+	"github.com/go-acme/lego/providers/dns/cloudflare"
+	"github.com/go-acme/lego/registration"
 	consul "github.com/hashicorp/consul/api"
 	vault "github.com/hashicorp/vault/api"
 	"github.com/sirupsen/logrus"
 	config "github.com/vx-labs/iot-mqtt-config"
 	"github.com/vx-labs/iot-mqtt-tls/cache"
-	"github.com/xenolf/lego/acme"
-	"github.com/xenolf/lego/providers/dns/cloudflare"
 	"golang.org/x/net/context"
 )
 
 type Client struct {
-	api     *acme.Client
+	api     *lego.Client
 	cache   *cache.VaultProvider
 	account *Account
 }
@@ -33,13 +37,13 @@ type Client struct {
 type Account struct {
 	key          *rsa.PrivateKey
 	email        string
-	Registration *acme.RegistrationResource
+	Registration *registration.Resource
 }
 
 func (u Account) GetEmail() string {
 	return u.email
 }
-func (u Account) GetRegistration() *acme.RegistrationResource {
+func (u Account) GetRegistration() *registration.Resource {
 	return u.Registration
 }
 func (u Account) GetPrivateKey() crypto.PrivateKey {
@@ -117,12 +121,15 @@ func New(consulAPI *consul.Client, vaultAPI *vault.Client, o ...Opt) (*Client, e
 		return nil, err
 	}
 	httpClient := newHttpClient(httpConfig)
-	acme.HTTPClient = *httpClient
-	var client *acme.Client
+	legoConfig := lego.Config{
+		HTTPClient: httpClient,
+		User:       &account,
+	}
+	var client *lego.Client
 	if opts.UseStaging {
-		client, err = acme.NewClient("https://acme-staging-v02.api.letsencrypt.org/directory", &account, acme.RSA4096)
+		legoConfig.CADirURL = "https://acme-staging-v02.api.letsencrypt.org/directory"
 	} else {
-		client, err = acme.NewClient("https://acme-v02.api.letsencrypt.org/directory", &account, acme.RSA4096)
+		legoConfig.CADirURL = "https://acme-v02.api.letsencrypt.org/directory"
 	}
 	if err != nil {
 		return nil, err
@@ -143,12 +150,12 @@ func New(consulAPI *consul.Client, vaultAPI *vault.Client, o ...Opt) (*Client, e
 	if err != nil {
 		return nil, err
 	}
-	c.api.ExcludeChallenges([]acme.Challenge{acme.HTTP01})
-	err = c.api.SetChallengeProvider(acme.DNS01, cf)
 	c.cache = store
 
 	if account.Registration == nil {
-		reg, err = client.Register(true)
+		reg, err = client.Registration.Register(registration.RegisterOptions{
+			TermsOfServiceAgreed: true,
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -157,6 +164,9 @@ func New(consulAPI *consul.Client, vaultAPI *vault.Client, o ...Opt) (*Client, e
 			return nil, err
 		}
 	}
+	c.api.Challenge.SetDNS01Provider(cf)
+	c.api.Challenge.Remove(challenge.HTTP01)
+	c.api.Challenge.Remove(challenge.TLSALPN01)
 	return c, err
 }
 
@@ -166,11 +176,6 @@ func (c *Client) GetCertificate(ctx context.Context, cn string) ([]tls.Certifica
 		return nil, err
 	}
 	defer l.Unlock()
-	// disable ACME DNS check for now
-	acme.PreCheckDNS = func(fqdn, value string) (bool, error) {
-		time.Sleep(5 * time.Second)
-		return true, nil
-	}
 	key, err := c.cache.GetKey(ctx, cn)
 	if err != nil {
 		logrus.Infof("generating a new private key")
@@ -189,7 +194,12 @@ func (c *Client) GetCertificate(ctx context.Context, cn string) ([]tls.Certifica
 	cert, err := c.cache.GetCert(ctx, cn)
 	if err != nil {
 		logrus.Infof("request certificate from ACME")
-		certificates, err := c.api.ObtainCertificate([]string{cn}, true, key, false)
+		request := certificate.ObtainRequest{
+			Domains:    []string{"cn"},
+			Bundle:     true,
+			PrivateKey: key,
+		}
+		certificates, err := c.api.Certificate.Obtain(request)
 		if err != nil {
 			return nil, err
 		}

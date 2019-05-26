@@ -8,9 +8,9 @@ import (
 	"encoding/pem"
 	"fmt"
 
+	"github.com/go-acme/lego/registration"
 	consul "github.com/hashicorp/consul/api"
 	vault "github.com/hashicorp/vault/api"
-	"github.com/xenolf/lego/acme"
 	"golang.org/x/net/context"
 )
 
@@ -103,7 +103,7 @@ func (e *VaultProvider) Lock(ctx context.Context) (*consul.Lock, error) {
 	l := NewConsulLocker(e.consul)
 	return l.Lock(ctx, e.prefix)
 }
-func (e *VaultProvider) SaveRegistration(ctx context.Context, reg *acme.RegistrationResource) error {
+func (e *VaultProvider) SaveRegistration(ctx context.Context, reg *registration.Resource) error {
 	payload, err := json.Marshal(reg)
 	if err != nil {
 		return err
@@ -116,7 +116,7 @@ func (e *VaultProvider) SaveRegistration(ctx context.Context, reg *acme.Registra
 	})
 	return err
 }
-func (e *VaultProvider) GetRegistration(ctx context.Context) (*acme.RegistrationResource, error) {
+func (e *VaultProvider) GetRegistration(ctx context.Context) (*registration.Resource, error) {
 	key := fmt.Sprintf("secret/data/%s/account/registration", e.prefix)
 	response, err := e.vault.Logical().Read(key)
 	if err != nil {
@@ -134,6 +134,6 @@ func (e *VaultProvider) GetRegistration(ctx context.Context) (*acme.Registration
 	if err != nil {
 		return nil, err
 	}
-	reg := &acme.RegistrationResource{}
+	reg := &registration.Resource{}
 	return reg, json.Unmarshal(payload, reg)
 }
