@@ -121,7 +121,7 @@ func New(consulAPI *consul.Client, vaultAPI *vault.Client, o ...Opt) (*Client, e
 		return nil, err
 	}
 	httpClient := newHttpClient(httpConfig)
-	legoConfig := lego.Config{
+	legoConfig := &lego.Config{
 		HTTPClient: httpClient,
 		User:       &account,
 	}
@@ -135,8 +135,10 @@ func New(consulAPI *consul.Client, vaultAPI *vault.Client, o ...Opt) (*Client, e
 		return nil, err
 	}
 
-	c.api = client
-
+	c.api, err = lego.NewClient(legoConfig)
+	if err != nil {
+		return nil, err
+	}
 	cfCreds, err := config.Cloudflare(vaultAPI)
 	if err != nil {
 		return nil, err
