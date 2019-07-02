@@ -14,6 +14,8 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/go-acme/lego/challenge/dns01"
+
 	"github.com/go-acme/lego/challenge"
 
 	"github.com/go-acme/lego/certificate"
@@ -166,7 +168,7 @@ func New(consulAPI *consul.Client, vaultAPI *vault.Client, o ...Opt) (*Client, e
 			return nil, err
 		}
 	}
-	c.api.Challenge.SetDNS01Provider(cf)
+	c.api.Challenge.SetDNS01Provider(cf, dns01.DisableCompletePropagationRequirement())
 	c.api.Challenge.Remove(challenge.HTTP01)
 	c.api.Challenge.Remove(challenge.TLSALPN01)
 	return c, err
