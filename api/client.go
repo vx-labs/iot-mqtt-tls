@@ -197,7 +197,7 @@ func (c *Client) GetCertificate(ctx context.Context, cn string) ([]tls.Certifica
 	if err != nil {
 		logrus.Infof("request certificate from ACME")
 		request := certificate.ObtainRequest{
-			Domains:    []string{"cn"},
+			Domains:    []string{cn},
 			Bundle:     true,
 			PrivateKey: key,
 		}
