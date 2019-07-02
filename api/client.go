@@ -168,7 +168,17 @@ func New(consulAPI *consul.Client, vaultAPI *vault.Client, o ...Opt) (*Client, e
 			return nil, err
 		}
 	}
-	c.api.Challenge.SetDNS01Provider(cf, dns01.DisableCompletePropagationRequirement())
+	c.api.Challenge.SetDNS01Provider(cf, dns01.WrapPreCheck(func(domain, fqdn, value string, check dns01.PreCheckFunc) (bool, error) {
+		log.Printf("Waiting for DNS propagation of record %s", domain)
+		result, err := net.LookupTXT(domain)
+		if err != nil {
+			return false, nil
+		}
+		if len(result) > 0 {
+			return true, nil
+		}
+		return false, nil
+	}))
 	c.api.Challenge.Remove(challenge.HTTP01)
 	c.api.Challenge.Remove(challenge.TLSALPN01)
 	return c, err
